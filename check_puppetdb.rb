@@ -8,6 +8,7 @@
 #
 # http://docs.puppetlabs.com/puppetdb/latest/api/query/v3/metrics.html
 
+require 'rubygems'
 require 'optparse'
 require 'open-uri'
 require 'uri'
