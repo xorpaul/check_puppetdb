@@ -5,6 +5,12 @@ PuppetDB monitoring script for Nagios/Icinga/Shinken
 
 Using PuppetDB API (http://docs.puppetlabs.com/puppetdb/latest/api/query/v3/metrics.html) to query certain metrics for monitoring and statistic purposes.
 
+DEPENDENCIES:
+--------
+* ruby 1.9.3
+* JSON gem
+
+
 USAGE:
 --------
 
