@@ -13,12 +13,15 @@ require 'optparse'
 require 'open-uri'
 require 'uri'
 require 'json'
+require 'socket'
+require 'timeout'
 
 $debug = false
 $checkmk = false
 $host = ''
 $timeout = 5
 $port = 8080
+$sslport = $port + 1
 $queuewarn = 500
 $queuecrit = 2000
 $cmd_p_secwarn = 0.5
@@ -36,6 +39,9 @@ opt.on("--host [PUPPETDBSERVER]", "-H", "Your PuppetDB hostname, MANDATORY param
 end
 opt.on("--port [PORT]", "-p", Integer, "Your PuppetDB port, defaults to #{$port}") do |port_p|
     $port = port_p
+end
+opt.on("--sslport [SSLPORT]", "-s", Integer, "Your PuppetDB SSL port, defaults to #{$port + 1}") do |sslport_p|
+    $sslport = sslport_p
 end
 opt.on("--timeout [SECONDS]", "-t", Integer, "Timeout for each HTTP GET request, defaults to #{$timeout} seconds") do |timeout_p|
     $timeout = timeout_p
@@ -59,6 +65,24 @@ if $host == '' || $host == nil
     puts "Example: #{__FILE__} -H puppetdb.domain.tld"
     puts opt
     exit 3
+end
+
+# http://stackoverflow.com/a/517638/682847
+def is_port_open?(ip, port)
+  begin
+    Timeout::timeout($timeout) do
+      begin
+        s = TCPSocket.new(ip, port)
+        s.close
+        return true
+      rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH
+        return false
+      end
+    end
+  rescue Timeout::Error
+  end
+
+  return false
 end
 
 def doRequest(url)
@@ -229,31 +253,48 @@ def populationResourcesMetrics(host, port)
 end
 
 results = []
-if $debug == false
-  # threading
-  threads = []
-  threads << Thread.new{ results << commandProcessingMetrics($host, $port, $cmd_p_secwarn, $cmd_p_seccrit) }
-  threads << Thread.new{ results << commandProcessedMetrics($host, $port) }
-  threads << Thread.new{ results << databaseMetrics($host, $port) }
-  threads << Thread.new{ results << JvmMetrics($host, $port) }
-  threads << Thread.new{ results << queueMetrics($host, $port, $queuewarn, $queuecrit) }
-  threads << Thread.new{ results << catalogDuplicatesMetrics($host, $port) }
-  threads << Thread.new{ results << populationNodesMetrics($host, $port) }
-  # disabled for now, because it's rather wasteful
-  #threads << Thread.new{ results << populationResourcesMetrics($host, $port) }
 
-  threads.each do |t|
-    t.join
+# Check if plain HTTP port is open
+skip_checks = false
+if ! is_port_open?($host, $port)
+  # skip all metric checks
+  skip_checks = true
+  results << {'text' => "CRITICAL: Could not connect to plain HTTP port #{$host}:#{$port}", 'returncode' => 2}
+end
+
+# Check if plain SSL port is open
+if ! is_port_open?($host, $sslport)
+  # don't skip metric checks, but add CRITICAL result
+  results << {'text' => "CRITICAL: Could not connect to SSL port #{$host}:#{$sslport}", 'returncode' => 2}
+end
+
+if ! skip_checks
+  if $debug == false
+    # threading
+    threads = []
+    threads << Thread.new{ results << commandProcessingMetrics($host, $port, $cmd_p_secwarn, $cmd_p_seccrit) }
+    threads << Thread.new{ results << commandProcessedMetrics($host, $port) }
+    threads << Thread.new{ results << databaseMetrics($host, $port) }
+    threads << Thread.new{ results << JvmMetrics($host, $port) }
+    threads << Thread.new{ results << queueMetrics($host, $port, $queuewarn, $queuecrit) }
+    threads << Thread.new{ results << catalogDuplicatesMetrics($host, $port) }
+    threads << Thread.new{ results << populationNodesMetrics($host, $port) }
+    # disabled for now, because it's rather wasteful
+    #threads << Thread.new{ results << populationResourcesMetrics($host, $port) }
+
+    threads.each do |t|
+      t.join
+    end
+  else
+    results << commandProcessingMetrics($host, $port, $cmd_p_secwarn, $cmd_p_seccrit)
+    results << commandProcessedMetrics($host, $port)
+    results << databaseMetrics($host, $port)
+    results << JvmMetrics($host, $port)
+    results << queueMetrics($host, $port, $queuewarn, $queuecrit)
+    results << catalogDuplicatesMetrics($host, $port)
+    results << populationNodesMetrics($host, $port)
+    #results << populationResourcesMetrics($host, $port)
   end
-else
-  results << commandProcessingMetrics($host, $port, $cmd_p_secwarn, $cmd_p_seccrit)
-  results << commandProcessedMetrics($host, $port)
-  results << databaseMetrics($host, $port)
-  results << JvmMetrics($host, $port)
-  results << queueMetrics($host, $port, $queuewarn, $queuecrit)
-  results << catalogDuplicatesMetrics($host, $port)
-  results << populationNodesMetrics($host, $port)
-  #results << populationResourcesMetrics($host, $port)
 end
 
 puts results if $debug
