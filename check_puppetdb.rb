@@ -31,7 +31,7 @@ opt = OptionParser.new
 opt.on("--debug", "-d", "print debug information, defaults to #{$debug}") do |f|
     $debug = true
 end
-opt.on("--checkmk", "append HTML </br> to each line in the long output to display line breaks check_mk GUI, defaults to #{$checkmk}") do |c|
+opt.on("--checkmk", "append HTML </br> to each line in the long output to display line breaks in the check_mk GUI, defaults to #{$checkmk}") do |c|
     $checkmk = true
 end
 opt.on("--host [PUPPETDBSERVER]", "-H", "Your PuppetDB hostname, MANDATORY parameter") do |host_p|

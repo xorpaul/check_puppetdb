@@ -18,7 +18,7 @@ USAGE:
 ```
 Usage: check_puppetdb [options]
     -d, --debug                      print debug information, defaults to false
-        --checkmk                    append HTML </br> to each line in the long output to display line breaks check_mk GUI, defaults to false
+        --checkmk                    append HTML </br> to each line in the long output to display line breaks in the check_mk GUI, defaults to false
     -H, --host [PUPPETDBSERVER]      Your PuppetDB hostname, MANDATORY parameter
     -p, --port [PORT]                Your PuppetDB port, defaults to 8080
     -s, --sslport [SSLPORT]          Your PuppetDB SSL port, defaults to 8081
