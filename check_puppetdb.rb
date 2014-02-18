@@ -180,6 +180,21 @@ def commandProcessedMetrics(host, port)
   return result
 end
 
+def commandRetriedMetrics(host, port)
+  result = {'perfdata' => '', 'returncode' => 0}
+  url = "http://#{host}:#{port}/v3/metrics/mbean/com.puppetlabs.puppetdb.command:type=global,name=retried"
+  data = doRequest(url)
+  if data['returncode'] == 0
+    retried = data['data']['Count']
+    result['text'] = "retried: #{retried}"
+    result['perfdata'] = "retried=#{retried}"
+  else
+    result['text'] = data['text']
+    result['returncode'] = data['returncode']
+  end
+  return result
+end
+
 def queueMetrics(host, port, warn, crit)
   result = {'perfdata' => '', 'returncode' => 0}
   url = "http://#{host}:#{port}/v3/metrics/mbean/org.apache.activemq:BrokerName=localhost,Type=Queue,Destination=com.puppetlabs.puppetdb.commands"
@@ -274,6 +289,7 @@ if ! skip_checks
     threads = []
     threads << Thread.new{ results << commandProcessingMetrics($host, $port, $cmd_p_secwarn, $cmd_p_seccrit) }
     threads << Thread.new{ results << commandProcessedMetrics($host, $port) }
+    threads << Thread.new{ results << commandRetriedMetrics($host, $port) }
     threads << Thread.new{ results << databaseMetrics($host, $port) }
     threads << Thread.new{ results << JvmMetrics($host, $port) }
     threads << Thread.new{ results << queueMetrics($host, $port, $queuewarn, $queuecrit) }
@@ -288,6 +304,7 @@ if ! skip_checks
   else
     results << commandProcessingMetrics($host, $port, $cmd_p_secwarn, $cmd_p_seccrit)
     results << commandProcessedMetrics($host, $port)
+    results << commandRetriedMetrics($host, $port)
     results << databaseMetrics($host, $port)
     results << JvmMetrics($host, $port)
     results << queueMetrics($host, $port, $queuewarn, $queuecrit)
