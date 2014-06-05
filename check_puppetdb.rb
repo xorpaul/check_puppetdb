@@ -237,6 +237,21 @@ def catalogDuplicatesMetrics(host, port)
   return result
 end
 
+def resourceDuplicatesMetrics(host, port)
+  result = {'perfdata' => '', 'returncode' => 0}
+  url = "http://#{host}:#{port}/v3/metrics/mbean/com.puppetlabs.puppetdb.query.population:type=default,name=pct-resource-dupes"
+  data = doRequest(url)
+  if data['returncode'] == 0
+    c_dup_perc = (data['data']['Value'] * 100)
+    result['text'] = "Resource duplication: #{c_dup_perc.round(1)}%"
+    result['perfdata'] = "resource_duplication=#{c_dup_perc.round(3)}%"
+  else
+    result['text'] = data['text']
+    result['returncode'] = data['returncode']
+  end
+  return result
+end
+
 def populationNodesMetrics(host, port)
   result = {'perfdata' => '', 'returncode' => 0}
   url = "http://#{host}:#{port}/v3/metrics/mbean/com.puppetlabs.puppetdb.query.population:type=default,name=num-nodes"
@@ -295,8 +310,10 @@ if ! skip_checks
     threads << Thread.new{ results << queueMetrics($host, $port, $queuewarn, $queuecrit) }
     threads << Thread.new{ results << catalogDuplicatesMetrics($host, $port) }
     threads << Thread.new{ results << populationNodesMetrics($host, $port) }
-    # disabled for now, because it's rather wasteful
-    #threads << Thread.new{ results << populationResourcesMetrics($host, $port) }
+    # I only began querying this after updating to PuppetDB 1.6, otherwise it was too slow
+    threads << Thread.new{ results << populationResourcesMetrics($host, $port) }
+    # This is also rather costly (adds more than 2 seconds for me)
+    threads << Thread.new{ results << resourceDuplicatesMetrics($host, $port) }
 
     threads.each do |t|
       t.join
@@ -310,7 +327,10 @@ if ! skip_checks
     results << queueMetrics($host, $port, $queuewarn, $queuecrit)
     results << catalogDuplicatesMetrics($host, $port)
     results << populationNodesMetrics($host, $port)
-    #results << populationResourcesMetrics($host, $port)
+    # I only began querying this after updating to PuppetDB 1.6, otherwise it was too slow
+    results << populationResourcesMetrics($host, $port)
+    # This is also rather costly (adds more than 2 seconds for me)
+    results << resourceDuplicatesMetrics($host, $port)
   end
 end
 
