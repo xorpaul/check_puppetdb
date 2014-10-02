@@ -1,0 +1,18 @@
+name: check_puppetdb
+description: "file:///README.md"
+url: "https://github.com/xorpaul/check_puppetdb"
+tags: Statistic
+vendor: Linux
+target: Puppet,PuppetDB,PuppetLabs
+type: Plugin
+license: gplv3
+releases: 
+  - 
+    name: 1.0
+    description: "1.0 Release"
+    files: 
+      - 
+        name: check_puppetdb.rb
+        url: "file:///check_puppetdb.rb"
+        description: "First release"
+        checksum: a1092f23e8fc357327fb407f05b62eb8
