@@ -1,9 +1,9 @@
 name: check_puppetdb
 description: "file:///README.md"
 url: "https://github.com/xorpaul/check_puppetdb"
-tags: Statistic
-vendor: Linux
-target: Puppet,PuppetDB,PuppetLabs
+tags: Puppet, PuppetDB
+vendor: PuppetLabs
+target: Reporting
 type: Plugin
 license: gplv3
 releases: 
