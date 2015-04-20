@@ -24,8 +24,8 @@ $port = 8080
 $sslport = $port + 1
 $queuewarn = 500
 $queuecrit = 2000
-$cmd_p_secwarn = 0.5
-$cmd_p_seccrit = 0.2
+$cmd_p_secwarn = -1
+$cmd_p_seccrit = -1
 
 opt = OptionParser.new
 opt.on("--debug", "-d", "print debug information, defaults to #{$debug}") do |f|
