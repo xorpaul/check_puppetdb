@@ -26,9 +26,9 @@ Usage: check_puppetdb [options]
         --queuewarn [WARNTHRESHOLD]  WARNING threshold for PuppetDB queue size, defaults to 500
         --queuecrit [CRITTHRESHOLD]  CRITICAL threshold for PuppetDB queue size, defaults to 2000
         --cmd_p_secwarn [WARNTHRESHOLD]
-                                     WARNING threshold for Commands processed per second, defaults to 0.5 cmds/s
+                                     WARNING threshold for Commands processed per second, defaults to -1 cmds/s
         --cmd_p_seccrit [CRITTHRESHOLD]
-                                     CRITICAL threshold for Commands processed per second, defaults to 0.2 cmds/s
+                                     CRITICAL threshold for Commands processed per second, defaults to -1 cmds/s
 ```
 
 **Example**
