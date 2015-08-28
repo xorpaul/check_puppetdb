@@ -6,7 +6,7 @@
 # Version: 0.1
 # -----------------------
 #
-# http://docs.puppetlabs.com/puppetdb/latest/api/query/v3/metrics.html
+# https://docs.puppetlabs.com/puppetdb/3.1/api/metrics/v1/mbeans.html
 
 require 'rubygems'
 require 'optparse'
@@ -104,7 +104,8 @@ end
 
 def commandProcessingMetrics(host, port, warn, crit)
   result = {'perfdata' => ''}
-  url = "http://#{host}:#{port}/v3/metrics/mbean/com.puppetlabs.puppetdb.command:type=global,name=processing-time"
+  url = "http://#{host}:#{port}/metrics/v1/mbeans/puppetlabs.puppetdb.command:type=global,name=processing-time"
+#metrics/v1/mbeans/puppetlabs.puppetdb.command:type=global,name=processing-time
   data = doRequest(url)
   if data['returncode'] == 0
     oneMinuteRate = data['data']['OneMinuteRate'].round(3)
@@ -133,7 +134,7 @@ end
 
 def databaseMetrics(host, port)
   result = {'perfdata' => '', 'returncode' => 0}
-  url = "http://#{host}:#{port}/v3/metrics/mbean/com.jolbox.bonecp:type=BoneCP"
+  url = "http://#{host}:#{port}/metrics/v1/mbeans/com.jolbox.bonecp:type=BoneCP"
   data = doRequest(url)
   if data['returncode'] == 0
     totalCreatedConnections = data['data']['TotalCreatedConnections']
@@ -151,13 +152,14 @@ end
 
 def JvmMetrics(host, port)
   result = {'perfdata' => '', 'returncode' => 0}
-  url = "http://#{host}:#{port}/v3/metrics/mbean/java.lang:type=Memory"
+  url = "http://#{host}:#{port}/metrics/v1/mbeans/java.lang:type=Memory"
   data = doRequest(url)
   if data['returncode'] == 0
     heapMemoryUsage_used = data['data']['HeapMemoryUsage']['used']
     heapMemoryUsage_max = data['data']['HeapMemoryUsage']['max']
-    result['text'] = "JVM #{heapMemoryUsage_used / 1024 / 1024}MB"
-    result['perfdata'] = "jvm_used=#{heapMemoryUsage_used}B jvm_max=#{heapMemoryUsage_max}B"
+    heapMemoryUsage_perc = ( heapMemoryUsage_used / heapMemoryUsage_max.to_f ) * 100
+    result['text'] = "JVM #{heapMemoryUsage_used / 1024 / 1024}MB used of #{heapMemoryUsage_max / 1024 / 1024}MB (#{heapMemoryUsage_perc.round(2)}%)"
+    result['perfdata'] = "jvm_used=#{heapMemoryUsage_used}B jvm_max=#{heapMemoryUsage_max}B jvm_used_perc=#{heapMemoryUsage_perc}%"
   else
     result['text'] = data['text']
     result['returncode'] = data['returncode']
@@ -167,7 +169,7 @@ end
 
 def commandProcessedMetrics(host, port)
   result = {'perfdata' => '', 'returncode' => 0}
-  url = "http://#{host}:#{port}/v3/metrics/mbean/com.puppetlabs.puppetdb.command:type=global,name=processed"
+  url = "http://#{host}:#{port}/metrics/v1/mbeans/puppetlabs.puppetdb.command:type=global,name=processed"
   data = doRequest(url)
   if data['returncode'] == 0
     processed = data['data']['Count']
@@ -182,7 +184,7 @@ end
 
 def commandRetriedMetrics(host, port)
   result = {'perfdata' => '', 'returncode' => 0}
-  url = "http://#{host}:#{port}/v3/metrics/mbean/com.puppetlabs.puppetdb.command:type=global,name=retried"
+  url = "http://#{host}:#{port}/metrics/v1/mbeans/puppetlabs.puppetdb.command:type=global,name=retried"
   data = doRequest(url)
   if data['returncode'] == 0
     retried = data['data']['Count']
@@ -197,7 +199,7 @@ end
 
 def queueMetrics(host, port, warn, crit)
   result = {'perfdata' => '', 'returncode' => 0}
-  url = "http://#{host}:#{port}/v3/metrics/mbean/org.apache.activemq:BrokerName=localhost,Type=Queue,Destination=com.puppetlabs.puppetdb.commands"
+  url = "http://#{host}:#{port}/metrics/v1/mbeans/org.apache.activemq:type=Broker,brokerName=localhost,destinationType=Queue,destinationName=puppetlabs.puppetdb.commands"
   data = doRequest(url)
   if data['returncode'] == 0
     queueSize = data['data']['QueueSize']
@@ -224,7 +226,7 @@ end
 
 def catalogDuplicatesMetrics(host, port)
   result = {'perfdata' => '', 'returncode' => 0}
-  url = "http://#{host}:#{port}/v3/metrics/mbean/com.puppetlabs.puppetdb.scf.storage:type=default,name=duplicate-pct"
+  url = "http://#{host}:#{port}/metrics/v1/mbeans/puppetlabs.puppetdb.scf.storage:type=default,name=duplicate-pct"
   data = doRequest(url)
   if data['returncode'] == 0
     c_dup_perc = (data['data']['Value'] * 100)
@@ -239,7 +241,7 @@ end
 
 def resourceDuplicatesMetrics(host, port)
   result = {'perfdata' => '', 'returncode' => 0}
-  url = "http://#{host}:#{port}/v3/metrics/mbean/com.puppetlabs.puppetdb.query.population:type=default,name=pct-resource-dupes"
+  url = "http://#{host}:#{port}/metrics/v1/mbeans/puppetlabs.puppetdb.query.population:type=default,name=pct-resource-dupes"
   data = doRequest(url)
   if data['returncode'] == 0
     c_dup_perc = (data['data']['Value'] * 100)
@@ -254,7 +256,7 @@ end
 
 def populationNodesMetrics(host, port)
   result = {'perfdata' => '', 'returncode' => 0}
-  url = "http://#{host}:#{port}/v3/metrics/mbean/com.puppetlabs.puppetdb.query.population:type=default,name=num-nodes"
+  url = "http://#{host}:#{port}/metrics/v1/mbeans/puppetlabs.puppetdb.query.population:type=default,name=num-nodes"
   data = doRequest(url)
   if data['returncode'] == 0
     num_nodes = data['data']['Value']
@@ -269,7 +271,7 @@ end
 
 def populationResourcesMetrics(host, port)
   result = {'perfdata' => '', 'returncode' => 0}
-  url = "http://#{host}:#{port}/v3/metrics/mbean/com.puppetlabs.puppetdb.query.population:type=default,name=num-resources"
+  url = "http://#{host}:#{port}/metrics/v1/mbeans/puppetlabs.puppetdb.query.population:type=default,name=num-resources"
   data = doRequest(url)
   if data['returncode'] == 0
     num_nodes = data['data']['Value']
