@@ -85,6 +85,17 @@ def is_port_open?(ip, port)
   return false
 end
 
+# http://grosser.it/2008/10/25/numbers-for-humans-humanize-for-numeric/
+class Numeric
+  def humanize(rounding=2,delimiter=',',separator='.')
+    value = respond_to?(:round_with_precision) ? round(rounding) : self
+    #see number with delimeter
+    parts = value.to_s.split('.')
+    parts[0].gsub!(/(\d)(?=(\d\d\d)+(?!\d))/, "\\1#{delimiter}")
+    parts.join separator
+  end
+end
+
 def doRequest(url)
   out = {'returncode' => 0}
   puts "sending GET to #{url}" if $debug
@@ -212,7 +223,7 @@ def queueMetrics(host, port, warn, crit)
       text = ''
       rc = 0
     end
-    result['text'] = "#{text}Queue size: #{queueSize} threads: #{threads}"
+    result['text'] = "#{text}Queue size: #{queueSize.humanize} threads: #{threads}"
     result['returncode'] = rc
     result['perfdata'] = "queue_size=#{queueSize};#{warn};#{crit} threads=#{threads}"
   else
@@ -343,9 +354,15 @@ output['text'] = ''
 output['text_if_ok'] = ''
 output['multiline'] = ''
 output['perfdata'] = ''
+puppetdb_still_alive = false
 results.each do |result|
   output['perfdata'] += "#{result['perfdata']} " if result['perfdata'] != ''
   if result['returncode'] >= 1
+    if ! result['text'].start_with?('Error \'Timeout::Error\' while sending ') and ! puppetdb_still_alive
+      puppetdb_still_alive = true
+    else
+      puppetdb_still_alive = false
+    end
     output['text'] += "#{result['text']} "
     case result['returncode']
     when 3
@@ -356,11 +373,18 @@ results.each do |result|
       output['returncode'] = 1 if result['returncode'] > output['returncode']
     end
   else
+    puppetdb_still_alive = true
     output['text_if_ok'] += "#{result['text']} "
     br = ''
     br = '</br>' if $checkmk
     output['multiline'] += "#{result['text']}#{br}\n"
   end
+end
+
+# if all check receive a timeout error then the PuppetDB is non functioning
+if ! puppetdb_still_alive
+  output['text'] = 'CRITICAL: Received only timeout errors, PuppetDB is not responding anymore, try restarting'
+  output['returncode'] = 2
 end
 
 if output['text'] == ''
