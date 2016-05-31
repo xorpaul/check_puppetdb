@@ -26,6 +26,7 @@ $queuewarn = 500
 $queuecrit = 2000
 $cmd_p_secwarn = -1
 $cmd_p_seccrit = -1
+$api_version = 4
 
 opt = OptionParser.new
 opt.on("--debug", "-d", "print debug information, defaults to #{$debug}") do |f|
@@ -60,6 +61,12 @@ opt.on("--cmd_p_seccrit [CRITTHRESHOLD]", Float, "CRITICAL threshold for Command
 end
 opt.parse!
 
+if ENV.key?('VIMRUNTIME')
+    $debug = true
+    $host = '10.77.202.37'
+end
+
+
 if $host == '' || $host == nil
     puts 'ERROR: Please specify your PuppetDB server with -H <PUPPETDBSERVER>'
     puts "Example: #{__FILE__} -H puppetdb.domain.tld"
@@ -93,7 +100,7 @@ def doRequest(url)
     response = uri.read(:read_timeout => $timeout)
     puts "Response: #{response}" if $debug
     out['data'] = JSON.load(response)
-  rescue Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError, Errno::ECONNREFUSED,
+  rescue OpenURI::HTTPError, Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError, Errno::ECONNREFUSED,
     Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
     out['text'] = "WARNING: Error '#{e}' while sending request to #{url}"
     out['returncode'] = 1
@@ -102,10 +109,25 @@ def doRequest(url)
   return out
 end
 
-def commandProcessingMetrics(host, port, warn, crit)
+def checkApiVersion()
+  v43url = "http://#{$host}:#{$port}/pdb/meta/v1/version"
+  v1url = "http://#{$host}:#{$port}/v3/metrics/mbean/com.puppetlabs.puppetdb.command:type=global,name=processing-time"
+  data = doRequest(v43url)
+  return data['data']['version'][0].to_i if data['returncode'] == 0
+  data = doRequest(v1url)
+  return 1 if data['returncode'] == 0
+end
+
+def commandProcessingMetrics(warn, crit)
   result = {'perfdata' => ''}
-  url = "http://#{host}:#{port}/metrics/v1/mbeans/puppetlabs.puppetdb.command:type=global,name=processing-time"
-#metrics/v1/mbeans/puppetlabs.puppetdb.command:type=global,name=processing-time
+  case $api_version
+  when 4
+    url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.mq:name=global.processing-time"
+  when 3
+    url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.command:type=global,name=processing-time"
+  when 1
+    url = "http://#{$host}:#{$port}/v3/metrics/mbean/com.puppetlabs.puppetdb.command:type=global,name=processing-time"
+  end
   data = doRequest(url)
   if data['returncode'] == 0
     oneMinuteRate = data['data']['OneMinuteRate'].round(3)
@@ -132,9 +154,17 @@ def commandProcessingMetrics(host, port, warn, crit)
   return result
 end
 
-def databaseMetrics(host, port)
+def databaseMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
-  url = "http://#{host}:#{port}/metrics/v1/mbeans/com.jolbox.bonecp:type=BoneCP"
+  case $api_version
+  when 4
+    url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.mq:name=global.processing-time"
+    return {'perfdata' => '', 'returncode' => 0, 'text' => 'database metrics and APIv4 not supported yet'}
+  when 3
+    url = "http://#{$host}:#{$port}/metrics/v1/mbeans/com.jolbox.bonecp:type=BoneCP"
+  when 1
+    url = "http://#{$host}:#{$port}/v3/metrics/mbean/com.jolbox.bonecp:type=BoneCP"
+  end
   data = doRequest(url)
   if data['returncode'] == 0
     totalCreatedConnections = data['data']['TotalCreatedConnections']
@@ -150,9 +180,14 @@ def databaseMetrics(host, port)
   return result
 end
 
-def JvmMetrics(host, port)
+def JvmMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
-  url = "http://#{host}:#{port}/metrics/v1/mbeans/java.lang:type=Memory"
+  case $api_version
+  when 4,3
+    url = "http://#{$host}:#{$port}/metrics/v1/mbeans/java.lang:type=Memory"
+  when 1
+    url = "http://#{$host}:#{$port}/v3/metrics/mbean/java.lang:type=Memory"
+  end
   data = doRequest(url)
   if data['returncode'] == 0
     heapMemoryUsage_used = data['data']['HeapMemoryUsage']['used']
@@ -167,9 +202,16 @@ def JvmMetrics(host, port)
   return result
 end
 
-def commandProcessedMetrics(host, port)
+def commandProcessedMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
-  url = "http://#{host}:#{port}/metrics/v1/mbeans/puppetlabs.puppetdb.command:type=global,name=processed"
+  case $api_version
+  when 4
+    url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.mq:name=global.processed"
+  when 3
+    url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.command:type=global,name=processed"
+  when 1
+    url = "http://#{$host}:#{$port}/v3/metrics/mbean/com.puppetlabs.puppetdb.command:type=global,name=processed"
+  end
   data = doRequest(url)
   if data['returncode'] == 0
     processed = data['data']['Count']
@@ -182,9 +224,16 @@ def commandProcessedMetrics(host, port)
   return result
 end
 
-def commandRetriedMetrics(host, port)
+def commandRetriedMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
-  url = "http://#{host}:#{port}/metrics/v1/mbeans/puppetlabs.puppetdb.command:type=global,name=retried"
+  case $api_version
+  when 4
+    url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.mq:name=global.retried"
+  when 3
+    url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.command:type=global,name=retried"
+  when 1
+    url = "http://#{$host}:#{$port}/v3/metrics/mbean/com.puppetlabs.puppetdb.command:type=global,name=retried"
+  end
   data = doRequest(url)
   if data['returncode'] == 0
     retried = data['data']['Count']
@@ -197,9 +246,14 @@ def commandRetriedMetrics(host, port)
   return result
 end
 
-def queueMetrics(host, port, warn, crit)
+def queueMetrics(warn, crit)
   result = {'perfdata' => '', 'returncode' => 0}
-  url = "http://#{host}:#{port}/metrics/v1/mbeans/org.apache.activemq:type=Broker,brokerName=localhost,destinationType=Queue,destinationName=puppetlabs.puppetdb.commands"
+  case $api_version
+  when 4,3
+    url = "http://#{$host}:#{$port}/metrics/v1/mbeans/org.apache.activemq:type=Broker,brokerName=localhost,destinationType=Queue,destinationName=puppetlabs.puppetdb.commands"
+  when 1
+    url = "http://#{$host}:#{$port}/v3/metrics/mbean/org.apache.activemq:BrokerName=localhost,Type=Queue,Destination=com.puppetlabs.puppetdb.commands"
+  end
   data = doRequest(url)
   if data['returncode'] == 0
     queueSize = data['data']['QueueSize']
@@ -224,9 +278,16 @@ def queueMetrics(host, port, warn, crit)
   return result
 end
 
-def catalogDuplicatesMetrics(host, port)
+def catalogDuplicatesMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
-  url = "http://#{host}:#{port}/metrics/v1/mbeans/puppetlabs.puppetdb.scf.storage:type=default,name=duplicate-pct"
+  case $api_version
+  when 4
+    url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.storage:name=duplicate-pct"
+  when 3
+    url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.scf.storage:type=default,name=duplicate-pct"
+  when 1
+    url = "http://#{$host}:#{$port}/v3/metrics/mbean/com.puppetlabs.puppetdb.scf.storage:type=default,name=duplicate-pct"
+  end
   data = doRequest(url)
   if data['returncode'] == 0
     c_dup_perc = (data['data']['Value'] * 100)
@@ -239,9 +300,16 @@ def catalogDuplicatesMetrics(host, port)
   return result
 end
 
-def resourceDuplicatesMetrics(host, port)
+def resourceDuplicatesMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
-  url = "http://#{host}:#{port}/metrics/v1/mbeans/puppetlabs.puppetdb.query.population:type=default,name=pct-resource-dupes"
+  case $api_version
+  when 4
+    url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.population:name=pct-resource-dupes"
+  when 3
+    url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.query.population:type=default,name=pct-resource-dupes"
+  when 1
+    url = "http://#{$host}:#{$port}/v3/metrics/mbean/com.puppetlabs.puppetdb.query.population:type=default,name=pct-resource-dupes"
+  end
   data = doRequest(url)
   if data['returncode'] == 0
     c_dup_perc = (data['data']['Value'] * 100)
@@ -254,9 +322,16 @@ def resourceDuplicatesMetrics(host, port)
   return result
 end
 
-def populationNodesMetrics(host, port)
+def populationNodesMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
-  url = "http://#{host}:#{port}/metrics/v1/mbeans/puppetlabs.puppetdb.query.population:type=default,name=num-nodes"
+  case $api_version
+  when 4
+    url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.population:name=num-nodes"
+  when 3
+    url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.query.population:type=default,name=num-nodes"
+  when 1
+    url = "http://#{$host}:#{$port}/v3/metrics/mbean/com.puppetlabs.puppetdb.query.population:type=default,name=num-nodes"
+  end
   data = doRequest(url)
   if data['returncode'] == 0
     num_nodes = data['data']['Value']
@@ -269,9 +344,16 @@ def populationNodesMetrics(host, port)
   return result
 end
 
-def populationResourcesMetrics(host, port)
+def populationResourcesMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
-  url = "http://#{host}:#{port}/metrics/v1/mbeans/puppetlabs.puppetdb.query.population:type=default,name=num-resources"
+  case $api_version
+  when 4
+    url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.population:name=num-resources"
+  when 3
+    url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.query.population:type=default,name=num-resources"
+  when 1
+    url = "http://#{$host}:#{$port}/v3/metrics/mbean/com.puppetlabs.puppetdb.query.population:type=default,name=num-resources"
+  end
   data = doRequest(url)
   if data['returncode'] == 0
     num_nodes = data['data']['Value']
@@ -300,39 +382,42 @@ if ! is_port_open?($host, $sslport)
   results << {'text' => "CRITICAL: Could not connect to SSL port #{$host}:#{$sslport}", 'returncode' => 2}
 end
 
+$api_version = checkApiVersion()
+puts "found PuppetDB API version #{$api_version}" if $debug
+
 if ! skip_checks
   if $debug == false
     # threading
     threads = []
-    threads << Thread.new{ results << commandProcessingMetrics($host, $port, $cmd_p_secwarn, $cmd_p_seccrit) }
-    threads << Thread.new{ results << commandProcessedMetrics($host, $port) }
-    threads << Thread.new{ results << commandRetriedMetrics($host, $port) }
-    threads << Thread.new{ results << databaseMetrics($host, $port) }
-    threads << Thread.new{ results << JvmMetrics($host, $port) }
-    threads << Thread.new{ results << queueMetrics($host, $port, $queuewarn, $queuecrit) }
-    threads << Thread.new{ results << catalogDuplicatesMetrics($host, $port) }
-    threads << Thread.new{ results << populationNodesMetrics($host, $port) }
+    threads << Thread.new{ results << commandProcessingMetrics($cmd_p_secwarn, $cmd_p_seccrit) }
+    threads << Thread.new{ results << commandProcessedMetrics() }
+    threads << Thread.new{ results << commandRetriedMetrics() }
+    threads << Thread.new{ results << databaseMetrics() }
+    threads << Thread.new{ results << JvmMetrics() }
+    threads << Thread.new{ results << queueMetrics($queuewarn, $queuecrit) }
+    threads << Thread.new{ results << catalogDuplicatesMetrics() }
+    threads << Thread.new{ results << populationNodesMetrics() }
     # I only began querying this after updating to PuppetDB 1.6, otherwise it was too slow
-    threads << Thread.new{ results << populationResourcesMetrics($host, $port) }
+    threads << Thread.new{ results << populationResourcesMetrics() }
     # This is also rather costly (adds more than 2 seconds for me)
-    threads << Thread.new{ results << resourceDuplicatesMetrics($host, $port) }
+    threads << Thread.new{ results << resourceDuplicatesMetrics() }
 
     threads.each do |t|
       t.join
     end
   else
-    results << commandProcessingMetrics($host, $port, $cmd_p_secwarn, $cmd_p_seccrit)
-    results << commandProcessedMetrics($host, $port)
-    results << commandRetriedMetrics($host, $port)
-    results << databaseMetrics($host, $port)
-    results << JvmMetrics($host, $port)
-    results << queueMetrics($host, $port, $queuewarn, $queuecrit)
-    results << catalogDuplicatesMetrics($host, $port)
-    results << populationNodesMetrics($host, $port)
+    results << commandProcessingMetrics($cmd_p_secwarn, $cmd_p_seccrit)
+    results << commandProcessedMetrics()
+    results << commandRetriedMetrics()
+    results << databaseMetrics()
+    results << JvmMetrics()
+    results << queueMetrics($queuewarn, $queuecrit)
+    results << catalogDuplicatesMetrics()
+    results << populationNodesMetrics()
     # I only began querying this after updating to PuppetDB 1.6, otherwise it was too slow
-    results << populationResourcesMetrics($host, $port)
+    results << populationResourcesMetrics()
     # This is also rather costly (adds more than 2 seconds for me)
-    results << resourceDuplicatesMetrics($host, $port)
+    results << resourceDuplicatesMetrics()
   end
 end
 
