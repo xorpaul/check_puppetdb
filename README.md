@@ -3,7 +3,10 @@ check_puppetdb
 
 PuppetDB monitoring script for Nagios/Icinga/Shinken
 
-Using PuppetDB API (http://docs.puppetlabs.com/puppetdb/latest/api/query/v3/metrics.html) to query certain metrics for monitoring and statistic purposes.
+Support for PuppetDB API:
+* PuppetDB version 4 (https://docs.puppet.com/puppetdb/4.0/api/metrics/v1/mbeans.html)
+* PuppetDB version 3 (https://docs.puppet.com/puppetdb/3.0/api/metrics/v1/mbeans.html)
+* PuppetDB version 1.6 (API version 3) (https://docs.puppet.com/puppetdb/1.6/api/query/v3/metrics.html)
 
 DEPENDENCIES:
 --------
