@@ -157,6 +157,55 @@ end
 def databaseMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
   case $api_version
+  when 3
+    url = "http://#{$host}:#{$port}/metrics/v1/mbeans/com.jolbox.bonecp:type=BoneCP"
+  when 1
+    url = "http://#{$host}:#{$port}/v3/metrics/mbean/com.jolbox.bonecp:type=BoneCP"
+  end
+  data = doRequest(url)
+  if data['returncode'] == 0
+    totalCreatedConnections = data['data']['TotalCreatedConnections']
+    totalLeased = data['data']['TotalLeased']
+    statementExecuteTimeAvg = data['data']['StatementExecuteTimeAvg'].round(3)
+    statementPrepareTimeAvg = data['data']['StatementPrepareTimeAvg'].round(3)
+    result['text'] = "used DB connections: #{totalLeased}"
+    result['perfdata'] = "max_connections=#{totalCreatedConnections} used_connections=#{totalLeased} db_exec_avg_time=#{statementExecuteTimeAvg}ms db_prepare_avg_time=#{statementPrepareTimeAvg}ms"
+  else
+    result['text'] = data['text']
+    result['returncode'] = data['returncode']
+  end
+  return result
+end
+
+def databaseMetricsHikari(pool='Write')
+  result = {'perfdata' => '', 'returncode' => 0}
+  url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.database:name=PDB#{pool}Pool.pool.ActiveConnections"
+  data = doRequest(url)
+  if data['returncode'] == 0
+    totalActiveConnections = data['data']['Value']
+    result['text'] = "#{pool} pool - active DB connections: #{totalActiveConnections}"
+    result['perfdata'] = "pool_#{pool.downcase}_used_connections=#{totalActiveConnections}"
+  else
+    result['text'] = data['text']
+    result['returncode'] = data['returncode']
+  end
+
+  url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.database:name=PDB#{pool}Pool.pool.TotalConnections"
+  data = doRequest(url)
+  if data['returncode'] == 0
+    totalCreatedConnections = data['data']['Value']
+    result['text'] += " max DB connections: #{totalCreatedConnections}"
+    result['perfdata'] += " pool_#{pool.downcase}_max_connections=#{totalCreatedConnections}"
+  else
+    result['text'] = data['text']
+    result['returncode'] = data['returncode']
+  end
+  return result
+end
+
+def databaseMetrics()
+  result = {'perfdata' => '', 'returncode' => 0}
+  case $api_version
   when 4
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.mq:name=global.processing-time"
     return {'perfdata' => '', 'returncode' => 0, 'text' => 'database metrics and APIv4 not supported yet'}
@@ -392,7 +441,12 @@ if ! skip_checks
     threads << Thread.new{ results << commandProcessingMetrics($cmd_p_secwarn, $cmd_p_seccrit) }
     threads << Thread.new{ results << commandProcessedMetrics() }
     threads << Thread.new{ results << commandRetriedMetrics() }
-    threads << Thread.new{ results << databaseMetrics() }
+    if $api_version == 4
+      threads << Thread.new{ results << databaseMetricsHikari() }
+      threads << Thread.new{ results << databaseMetricsHikari('Read') }
+    else
+      threads << Thread.new{ results << databaseMetrics() }
+    end
     threads << Thread.new{ results << JvmMetrics() }
     threads << Thread.new{ results << queueMetrics($queuewarn, $queuecrit) }
     threads << Thread.new{ results << catalogDuplicatesMetrics() }
@@ -409,7 +463,12 @@ if ! skip_checks
     results << commandProcessingMetrics($cmd_p_secwarn, $cmd_p_seccrit)
     results << commandProcessedMetrics()
     results << commandRetriedMetrics()
-    results << databaseMetrics()
+    if $api_version == 4
+      results << databaseMetricsHikari()
+      results << databaseMetricsHikari('Read')
+    else
+      results << databaseMetrics()
+    end
     results << JvmMetrics()
     results << queueMetrics($queuewarn, $queuecrit)
     results << catalogDuplicatesMetrics()
