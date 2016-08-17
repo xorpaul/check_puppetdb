@@ -501,7 +501,7 @@ output['text_if_ok'] = ''
 output['multiline'] = ''
 output['perfdata'] = ''
 puppetdb_still_alive = false
-results.each do |result|
+results.sort_by!{|b|b['perfdata']}.each do |result|
   output['perfdata'] += "#{result['perfdata']} " if result['perfdata'] != ''
   if result['returncode'] >= 1
     if ! result['text'].start_with?('Error \'Timeout::Error\' while sending ') and ! puppetdb_still_alive
