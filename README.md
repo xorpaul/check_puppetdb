@@ -4,7 +4,8 @@ check_puppetdb
 PuppetDB monitoring script for Nagios/Icinga/Shinken
 
 Support for PuppetDB API:
-* PuppetDB version 4 (https://docs.puppet.com/puppetdb/4.0/api/metrics/v1/mbeans.html)
+* PuppetDB version 4.3 (https://docs.puppet.com/puppetdb/4.3/api/metrics/v1/mbeans.html)
+* PuppetDB version 4.0 (https://docs.puppet.com/puppetdb/4.0/api/metrics/v1/mbeans.html)
 * PuppetDB version 3 (https://docs.puppet.com/puppetdb/3.0/api/metrics/v1/mbeans.html)
 * PuppetDB version 1.6 (API version 3) (https://docs.puppet.com/puppetdb/1.6/api/query/v3/metrics.html)
 
@@ -34,8 +35,29 @@ Usage: check_puppetdb [options]
                                      CRITICAL threshold for Commands processed per second, defaults to -1 cmds/s
 ```
 
+![checkmk](https://github.com/xorpaul/check_puppetdb/raw/master/example-images/checkmk.png)
+
 **Example**
 
+```
+PuppetDB 4.3
+$ ruby check_puppetdb.rb -H puppetdb43
+Catalog duplication: 0.0% 0.0 cmds/s 2131.14 ms/cmd JVM 80MB used of 171MB (47.0%) nodes: 3 Read pool - active DB connections: 1 max DB connections: 25 Write pool - active DB connections: 0 max DB connections: 25 processed: 2 Queue size: 0 Resource duplication: 26.1% resources: 902 retried: 0 thread count: 40 peak thread count: 51 daemon thread count: 19 |catalog_duplication=0.0% cmd_s_1m=0.0 cmd_s_5m=0.0;-1;-1 cmd_s_15m=0.0 ms_cmd50=2131.14ms jvm_used=84275720B jvm_max=179306496B jvm_used_perc=47.00092962610791% num_nodes=3 pool_read_used_connections=1 pool_read_max_connections=25 pool_write_used_connections=0 pool_write_max_connections=25 processed=2 queue_size=0;500;2000 resource_duplication=26.053% resources=902 retried=0 thread_count=40 peak_thread_count=51 daemon_thread_count=19 
+Catalog duplication: 0.0%
+0.0 cmds/s 2131.14 ms/cmd
+JVM 80MB used of 171MB (47.0%)
+nodes: 3
+Read pool - active DB connections: 1 max DB connections: 25
+Write pool - active DB connections: 0 max DB connections: 25
+processed: 2
+Queue size: 0
+Resource duplication: 26.1%
+resources: 902
+retried: 0
+thread count: 40 peak thread count: 51 daemon thread count: 19
+$ echo $?
+0
+```
 PuppetDB 4.0
 ```
 $ ruby check_puppetdb.rb -H puppetdb4
