@@ -468,13 +468,13 @@ skip_checks = false
 if ! is_port_open?($host, $port)
   # skip all metric checks
   skip_checks = true
-  results << {'text' => "CRITICAL: Could not connect to plain HTTP port #{$host}:#{$port}", 'returncode' => 2}
+  results << {'text' => "CRITICAL: Could not connect to plain HTTP port #{$host}:#{$port}", 'returncode' => 2, 'perfdata' => ''}
 end
 
 # Check if plain SSL port is open
 if ! is_port_open?($host, $sslport)
   # don't skip metric checks, but add CRITICAL result
-  results << {'text' => "CRITICAL: Could not connect to SSL port #{$host}:#{$sslport}", 'returncode' => 2}
+  results << {'text' => "CRITICAL: Could not connect to SSL port #{$host}:#{$sslport}", 'returncode' => 2, 'perfdata' => ''}
 end
 
 $api_version = checkApiVersion()
