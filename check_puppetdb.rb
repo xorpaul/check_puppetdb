@@ -332,7 +332,7 @@ end
 def queueMetrics(warn, crit)
   result = {'perfdata' => '', 'returncode' => 0}
   case $api_version
-  when /^(4\.3)/
+  when /^(4\.[3-9]+)/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.mq:name=global.depth"
   when /^[43]/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/org.apache.activemq:type=Broker,brokerName=localhost,destinationType=Queue,destinationName=puppetlabs.puppetdb.commands"
@@ -341,7 +341,7 @@ def queueMetrics(warn, crit)
   end
   data = doRequest(url)
   if data['returncode'] == 0
-    if $api_version.match(/^(4\.3)/)
+    if $api_version.match(/^(4\.[3-9]+)/)
       queueSize = data['data']['Count']
       threads = "N/A"
     else
