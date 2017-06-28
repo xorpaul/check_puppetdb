@@ -4,6 +4,7 @@ check_puppetdb
 PuppetDB monitoring script for Nagios/Icinga/Shinken
 
 Support for PuppetDB API:
+* PuppetDB version 4.4 (https://docs.puppet.com/puppetdb/4.4/api/metrics/v1/mbeans.html)
 * PuppetDB version 4.3 (https://docs.puppet.com/puppetdb/4.3/api/metrics/v1/mbeans.html)
 * PuppetDB version 4.0 (https://docs.puppet.com/puppetdb/4.0/api/metrics/v1/mbeans.html)
 * PuppetDB version 3 (https://docs.puppet.com/puppetdb/3.0/api/metrics/v1/mbeans.html)
