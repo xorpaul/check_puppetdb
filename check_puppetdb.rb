@@ -359,7 +359,7 @@ def queueMetrics(warn, crit)
       rc = 0
     end
     result['returncode'] = rc
-    if $api_version.match(/^(4\.3)/)
+    if $api_version.match(/^(4\.[3-9]+)/)
       result['text'] = "#{text}Queue size: #{queueSize}"
       result['perfdata'] = "queue_size=#{queueSize};#{warn};#{crit}"
     else
