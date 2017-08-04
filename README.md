@@ -4,6 +4,7 @@ check_puppetdb
 PuppetDB monitoring script for Nagios/Icinga/Shinken
 
 Support for PuppetDB API:
+* PuppetDB version 5.0 (https://docs.puppet.com/puppetdb/5.0/api/metrics/v1/mbeans.html)
 * PuppetDB version 4.4 (https://docs.puppet.com/puppetdb/4.4/api/metrics/v1/mbeans.html)
 * PuppetDB version 4.3 (https://docs.puppet.com/puppetdb/4.3/api/metrics/v1/mbeans.html)
 * PuppetDB version 4.0 (https://docs.puppet.com/puppetdb/4.0/api/metrics/v1/mbeans.html)
@@ -40,6 +41,23 @@ Usage: check_puppetdb [options]
 
 **Example**
 
+PuppetDB 5.0
+```
+$ ruby check_puppetdb.rb -H puppetdb5
+Catalog duplication: 0.0% 0.002 cmds/s 76.726 ms/cmd JVM 1683MB used of 21159MB (7.96%) nodes: 5 Read pool - active DB connections: 3 max DB connections: 28 Write pool - active DB connections: 0 max DB connections: 28 processed: 8 Queue size: 0 threads: N/A Resource duplication: 0.0% resources: 0 retried: 0 thread count: 69 peak thread count: 69 daemon thread count: 17 |catalog_duplication=0.0% cmd_s_1m=0.002 cmd_s_5m=0.002;-1;-1 cmd_s_15m=0.001 ms_cmd50=76.726ms jvm_used=1765218896B jvm_max=22186819584B jvm_used_perc=7.956160139657807% num_nodes=5 pool_read_used_connections=3 pool_read_max_connections=28 pool_write_used_connections=0 pool_write_max_connections=28 processed=8 queue_size=0;500;2000 threads=N/A resource_duplication=0.0% resources=0 retried=0 thread_count=69 peak_thread_count=69 daemon_thread_count=17 
+Catalog duplication: 0.0%
+0.002 cmds/s 76.726 ms/cmd
+JVM 1683MB used of 21159MB (7.96%)
+nodes: 5
+Read pool - active DB connections: 3 max DB connections: 28
+Write pool - active DB connections: 0 max DB connections: 28
+processed: 8
+Queue size: 0 threads: N/A
+Resource duplication: 0.0%
+resources: 0
+retried: 0
+thread count: 69 peak thread count: 69 daemon thread count: 17
+```
 PuppetDB 4.3
 ```
 $ ruby check_puppetdb.rb -H puppetdb43
