@@ -132,7 +132,7 @@ end
 def commandProcessingMetrics(warn, crit)
   result = {'perfdata' => ''}
   case $api_version
-  when /^[4,5]/
+  when /^[45]/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.mq:name=global.processing-time"
   when /^3/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.command:type=global,name=processing-time"
@@ -217,7 +217,7 @@ end
 def databaseMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
   case $api_version
-  when /^[4,5]/
+  when /^[45]/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.mq:name=global.processing-time"
     return {'perfdata' => '', 'returncode' => 0, 'text' => 'database metrics and APIv4 not supported yet'}
   when /^3/
@@ -288,7 +288,7 @@ end
 def commandProcessedMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
   case $api_version
-  when /^[4,5]/
+  when /^[45]/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.mq:name=global.processed"
   when /^3/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.command:type=global,name=processed"
@@ -310,7 +310,7 @@ end
 def commandRetriedMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
   case $api_version
-  when /^[4,5]/
+  when /^[45]/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.mq:name=global.retried"
   when /^3/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.command:type=global,name=retried"
@@ -376,7 +376,7 @@ end
 def catalogDuplicatesMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
   case $api_version
-  when /^[4,5]/
+  when /^[45]/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.storage:name=duplicate-pct"
   when /^3/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.scf.storage:type=default,name=duplicate-pct"
@@ -398,7 +398,7 @@ end
 def resourceDuplicatesMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
   case $api_version
-  when /^[4,5]/
+  when /^[45]/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.population:name=pct-resource-dupes"
   when /^3/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.query.population:type=default,name=pct-resource-dupes"
@@ -420,7 +420,7 @@ end
 def populationNodesMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
   case $api_version
-  when /^[4,5]/
+  when /^[45]/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.population:name=num-nodes"
   when /^3/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.query.population:type=default,name=num-nodes"
@@ -442,7 +442,7 @@ end
 def populationResourcesMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
   case $api_version
-  when /^[4,5]/
+  when /^[45]/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.population:name=num-resources"
   when /^3/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.query.population:type=default,name=num-resources"
@@ -487,7 +487,7 @@ if ! skip_checks
     threads << Thread.new{ results << commandProcessingMetrics($cmd_p_secwarn, $cmd_p_seccrit) }
     threads << Thread.new{ results << commandProcessedMetrics() }
     threads << Thread.new{ results << commandRetriedMetrics() }
-    if $api_version.match(/^[4,5]/)
+    if $api_version.match(/^[45]/)
       threads << Thread.new{ results << databaseMetricsHikari() }
       threads << Thread.new{ results << databaseMetricsHikari('Read') }
     else
@@ -513,7 +513,7 @@ if ! skip_checks
       results << commandProcessingMetrics($cmd_p_secwarn, $cmd_p_seccrit)
       results << commandProcessedMetrics()
       results << commandRetriedMetrics()
-      if $api_version.match(/^[4,5]/)
+      if $api_version.match(/^[45]/)
         results << databaseMetricsHikari()
         results << databaseMetricsHikari('Read')
       else
