@@ -133,7 +133,9 @@ end
 def commandProcessingMetrics(warn, crit)
   result = {'perfdata' => ''}
   case $api_version
-  when /^[456]/
+  when /^6/
+    url = "http://#{$host}:#{$port}/metrics/v2/read/puppetlabs.puppetdb.mq:name=global.processing-time"
+  when /^[45]/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.mq:name=global.processing-time"
   when /^3/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.command:type=global,name=processing-time"
@@ -142,6 +144,9 @@ def commandProcessingMetrics(warn, crit)
   end
   data = doRequest(url)
   if data['returncode'] == 0
+    if $api_version.match(/^6/)
+      data['data'] = data['data']['value']
+    end
     oneMinuteRate = data['data']['OneMinuteRate'].round(3)
     fiveMinuteRate = data['data']['FiveMinuteRate'].round(3)
     fifteenMinuteRate = data['data']['FifteenMinuteRate'].round(3)
@@ -169,6 +174,8 @@ end
 def databaseMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
   case $api_version
+  when /^6/
+    url = "http://#{$host}:#{$port}/metrics/v2/read/puppetlabs.puppetdb.mq:name=global.processing-time"
   when /^3/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/com.jolbox.bonecp:type=BoneCP"
   when /^1/
@@ -191,9 +198,18 @@ end
 
 def databaseMetricsHikari(pool='Write')
   result = {'perfdata' => '', 'returncode' => 0}
-  url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.database:name=PDB#{pool}Pool.pool.ActiveConnections"
+  case $api_version
+  when /^6/
+    url = "http://#{$host}:#{$port}/metrics/v2/read/puppetlabs.puppetdb.database:name=PDB#{pool}Pool.pool.ActiveConnections"
+  else
+    url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.database:name=PDB#{pool}Pool.pool.ActiveConnections"
+  end
+
   data = doRequest(url)
   if data['returncode'] == 0
+    if $api_version.match(/^6/)
+      data['data'] = data['data']['value']
+    end
     totalActiveConnections = data['data']['Value']
     result['text'] = "#{pool} pool - active DB connections: #{totalActiveConnections}"
     result['perfdata'] = "pool_#{pool.downcase}_used_connections=#{totalActiveConnections}"
@@ -202,9 +218,17 @@ def databaseMetricsHikari(pool='Write')
     result['returncode'] = data['returncode']
   end
 
-  url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.database:name=PDB#{pool}Pool.pool.TotalConnections"
+  case $api_version
+  when /^6/
+    url = "http://#{$host}:#{$port}/metrics/v2/read/puppetlabs.puppetdb.database:name=PDB#{pool}Pool.pool.TotalConnections"
+  else
+    url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.database:name=PDB#{pool}Pool.pool.TotalConnections"
+  end
   data = doRequest(url)
   if data['returncode'] == 0
+    if $api_version.match(/^6/)
+      data['data'] = data['data']['value']
+    end
     totalCreatedConnections = data['data']['Value']
     result['text'] += " max DB connections: #{totalCreatedConnections}"
     result['perfdata'] += " pool_#{pool.downcase}_max_connections=#{totalCreatedConnections}"
@@ -218,7 +242,9 @@ end
 def databaseMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
   case $api_version
-  when /^[456]/
+  when /^6/
+    url = "http://#{$host}:#{$port}/metrics/v2/read/puppetlabs.puppetdb.mq:name=global.processing-time"
+  when /^[45]/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.mq:name=global.processing-time"
     return {'perfdata' => '', 'returncode' => 0, 'text' => 'database metrics and APIv4 not supported yet'}
   when /^3/
@@ -244,13 +270,18 @@ end
 def JvmMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
   case $api_version
-  when /^[3,4,5,6]/
+  when /^6/
+    url = "http://#{$host}:#{$port}/metrics/v2/read/java.lang:type=Memory"
+  when /^[3,4,5]/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/java.lang:type=Memory"
   when /^1/
     url = "http://#{$host}:#{$port}/v3/metrics/mbean/java.lang:type=Memory"
   end
   data = doRequest(url)
   if data['returncode'] == 0
+    if $api_version.match(/^6/)
+      data['data'] = data['data']['value']
+    end
     heapMemoryUsage_used = data['data']['HeapMemoryUsage']['used']
     heapMemoryUsage_max = data['data']['HeapMemoryUsage']['max']
     heapMemoryUsage_perc = ( heapMemoryUsage_used / heapMemoryUsage_max.to_f ) * 100
@@ -266,13 +297,18 @@ end
 def JvmThreading()
   result = {'perfdata' => '', 'returncode' => 0}
   case $api_version
-  when /^[3,4,5,6]/
+  when /^6/
+    url = "http://#{$host}:#{$port}/metrics/v2/read/java.lang:type=Threading"
+  when /^[3,4,5]/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/java.lang:type=Threading"
   when /^1/
     url = "http://#{$host}:#{$port}/v3/metrics/mbean/java.lang:type=Threading"
   end
   data = doRequest(url)
   if data['returncode'] == 0
+    if $api_version.match(/^6/)
+      data['data'] = data['data']['value']
+    end
     threadcount = data['data']['ThreadCount']
     peakthreadcount = data['data']['PeakThreadCount']
     daemonthreadcount = data['data']['DaemonThreadCount']
@@ -289,7 +325,9 @@ end
 def commandProcessedMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
   case $api_version
-  when /^[456]/
+  when /^6/
+    url = "http://#{$host}:#{$port}/metrics/v2/read/puppetlabs.puppetdb.mq:name=global.processed"
+  when /^[45]/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.mq:name=global.processed"
   when /^3/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.command:type=global,name=processed"
@@ -298,6 +336,9 @@ def commandProcessedMetrics()
   end
   data = doRequest(url)
   if data['returncode'] == 0
+    if $api_version.match(/^6/)
+      data['data'] = data['data']['value']
+    end
     processed = data['data']['Count']
     result['text'] = "processed: #{processed}"
     result['perfdata'] = "processed=#{processed}"
@@ -311,7 +352,9 @@ end
 def commandRetriedMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
   case $api_version
-  when /^[456]/
+  when /^6/
+    url = "http://#{$host}:#{$port}/metrics/v2/read/puppetlabs.puppetdb.mq:name=global.retried"
+  when /^[45]/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.mq:name=global.retried"
   when /^3/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.command:type=global,name=retried"
@@ -320,6 +363,9 @@ def commandRetriedMetrics()
   end
   data = doRequest(url)
   if data['returncode'] == 0
+    if $api_version.match(/^6/)
+      data['data'] = data['data']['value']
+    end
     retried = data['data']['Count']
     result['text'] = "retried: #{retried}"
     result['perfdata'] = "retried=#{retried}"
@@ -333,7 +379,9 @@ end
 def queueMetrics(warn, crit)
   result = {'perfdata' => '', 'returncode' => 0}
   case $api_version
-  when /^(4\.[3-9]+)|^5|^6/
+  when /^6/
+    url = "http://#{$host}:#{$port}/metrics/v2/read/puppetlabs.puppetdb.mq:name=global.depth"
+  when /^(4\.[3-9]+)|^5/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.mq:name=global.depth"
   when /^[43]/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/org.apache.activemq:type=Broker,brokerName=localhost,destinationType=Queue,destinationName=puppetlabs.puppetdb.commands"
@@ -342,6 +390,9 @@ def queueMetrics(warn, crit)
   end
   data = doRequest(url)
   if data['returncode'] == 0
+    if $api_version.match(/^6/)
+      data['data'] = data['data']['value']
+    end
     if $api_version.match(/^(4\.[3-9]+)|^5|^6/)
       queueSize = data['data']['Count']
       threads = "N/A"
@@ -377,7 +428,9 @@ end
 def catalogDuplicatesMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
   case $api_version
-  when /^[456]/
+  when /^6/
+    url = "http://#{$host}:#{$port}/metrics/v2/read/puppetlabs.puppetdb.storage:name=duplicate-pct"
+  when /^[45]/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.storage:name=duplicate-pct"
   when /^3/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.scf.storage:type=default,name=duplicate-pct"
@@ -386,6 +439,9 @@ def catalogDuplicatesMetrics()
   end
   data = doRequest(url)
   if data['returncode'] == 0
+    if $api_version.match(/^6/)
+      data['data'] = data['data']['value']
+    end
     c_dup_perc = (data['data']['Value'] * 100)
     result['text'] = "Catalog duplication: #{c_dup_perc.round(1)}%"
     result['perfdata'] = "catalog_duplication=#{c_dup_perc.round(3)}%"
@@ -399,7 +455,9 @@ end
 def resourceDuplicatesMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
   case $api_version
-  when /^[456]/
+  when /^6/
+    url = "http://#{$host}:#{$port}/metrics/v2/read/puppetlabs.puppetdb.population:name=pct-resource-dupes"
+  when /^[45]/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.population:name=pct-resource-dupes"
   when /^3/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.query.population:type=default,name=pct-resource-dupes"
@@ -408,7 +466,17 @@ def resourceDuplicatesMetrics()
   end
   data = doRequest(url)
   if data['returncode'] == 0
-    c_dup_perc = (data['data']['Value'] * 100)
+    if $api_version.match(/^6/)
+      data['data'] = data['data']['value']
+      perc_array = data['data']['Value'].split("/")
+      if perc_array.size == 2
+        duplicates = perc_array[0].to_f
+        all = perc_array[1].to_f
+        c_dup_perc = (duplicates / all) * 100
+      end
+    else
+      c_dup_perc = (data['data']['Value'] * 100)
+    end
     result['text'] = "Resource duplication: #{c_dup_perc.round(1)}%"
     result['perfdata'] = "resource_duplication=#{c_dup_perc.round(3)}%"
   else
@@ -421,7 +489,9 @@ end
 def populationNodesMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
   case $api_version
-  when /^[456]/
+  when /^6/
+    url = "http://#{$host}:#{$port}/metrics/v2/read/puppetlabs.puppetdb.population:name=num-nodes"
+  when /^[45]/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.population:name=num-nodes"
   when /^3/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.query.population:type=default,name=num-nodes"
@@ -430,6 +500,9 @@ def populationNodesMetrics()
   end
   data = doRequest(url)
   if data['returncode'] == 0
+    if $api_version.match(/^6/)
+      data['data'] = data['data']['value']
+    end
     num_nodes = data['data']['Value']
     result['text'] = "nodes: #{num_nodes}"
     result['perfdata'] = "num_nodes=#{num_nodes}"
@@ -437,13 +510,27 @@ def populationNodesMetrics()
     result['text'] = data['text']
     result['returncode'] = data['returncode']
   end
+
+  # api version 6 introduced num-active-nodes and num-inactive-nodes endpoints
+  if $api_version.match(/^6/)
+    url = "http://#{$host}:#{$port}/metrics/v2/read/puppetlabs.puppetdb.population:name=num-inactive-nodes"
+    data = doRequest(url)
+    if data['returncode'] == 0
+      num_inactive_nodes = data['data']['value']['Value']
+      result['text'] += " inactive nodes: #{num_inactive_nodes}"
+      result['perfdata'] += " num_inactive_nodes=#{num_inactive_nodes}"
+    end
+  end
+
   return result
 end
 
 def populationResourcesMetrics()
   result = {'perfdata' => '', 'returncode' => 0}
   case $api_version
-  when /^[456]/
+  when /^6/
+    url = "http://#{$host}:#{$port}/metrics/v2/read/puppetlabs.puppetdb.population:name=num-resources"
+  when /^[45]/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.population:name=num-resources"
   when /^3/
     url = "http://#{$host}:#{$port}/metrics/v1/mbeans/puppetlabs.puppetdb.query.population:type=default,name=num-resources"
@@ -452,6 +539,9 @@ def populationResourcesMetrics()
   end
   data = doRequest(url)
   if data['returncode'] == 0
+    if $api_version.match(/^6/)
+      data['data'] = data['data']['value']
+    end
     num_nodes = data['data']['Value']
     result['text'] = "resources: #{num_nodes}"
     result['perfdata'] = "resources=#{num_nodes}"
@@ -462,6 +552,37 @@ def populationResourcesMetrics()
   return result
 end
 
+def dloMetrics()
+  result = {'perfdata' => '', 'returncode' => 0}
+  case $api_version
+  when /^6/
+    url = "http://#{$host}:#{$port}/metrics/v2/read/puppetlabs.puppetdb.dlo:name=puppetlabs.puppetdb.dlo.global.messages"
+  end
+  data = doRequest(url)
+  if data['returncode'] == 0
+    messages = data['data']['value']['Count']
+    result['text'] = "dlo global messages: #{messages}"
+    result['perfdata'] = "dlo_global_messages=#{messages}"
+  else
+    result['text'] += data['text']
+    result['returncode'] = data['returncode']
+  end
+
+  case $api_version
+  when /^6/
+    url = "http://#{$host}:#{$port}/metrics/v2/read/puppetlabs.puppetdb.dlo:name=puppetlabs.puppetdb.dlo.global.filesize"
+  end
+  data = doRequest(url)
+  if data['returncode'] == 0
+    filesize = data['data']['value']['Count']
+    result['text'] += " dlo global filesize: #{filesize}"
+    result['perfdata'] += " dlo_global_filesize=#{filesize}"
+  else
+    result['text'] += data['text']
+    result['returncode'] = data['returncode']
+  end
+  return result
+end
 results = []
 
 # Check if plain HTTP port is open
@@ -503,6 +624,9 @@ if ! skip_checks
     threads << Thread.new{ results << populationResourcesMetrics() }
     # This is also rather costly (adds more than 2 seconds for me)
     threads << Thread.new{ results << resourceDuplicatesMetrics() }
+    if $api_version.match(/^6/)
+      threads << Thread.new{ results << dloMetrics() }
+    end
 
     threads.each do |t|
       t.join
@@ -529,6 +653,9 @@ if ! skip_checks
       results << populationResourcesMetrics()
       # This is also rather costly (adds more than 2 seconds for me)
       results << resourceDuplicatesMetrics()
+      if $api_version.match(/^6/)
+        results << dloMetrics()
+      end
     end
   end
 end
