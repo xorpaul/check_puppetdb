@@ -114,7 +114,7 @@ def doRequest(url)
     puts "Response: #{response}" if $debug
     out['data'] = JSON.load(response)
   rescue OpenURI::HTTPError, Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError, Errno::ECONNREFUSED,
-    Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
+    Net::HTTPBadResponse, Net::HTTPForbidden, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
     out['text'] = "WARNING: Error '#{e}' while sending request to #{url}"
     out['returncode'] = 1
   end
@@ -555,7 +555,7 @@ def populationResourcesMetrics()
 end
 
 def dloMetrics()
-  result = {'perfdata' => '', 'returncode' => 0}
+  result = {'text' => '', 'perfdata' => '', 'returncode' => 0}
   case $api_version
   when /^[67]/
     url = "http://#{$host}:#{$port}/metrics/v2/read/puppetlabs.puppetdb.dlo:name=puppetlabs.puppetdb.dlo.global.messages"
