@@ -610,7 +610,7 @@ if ! skip_checks
     threads << Thread.new{ results << commandProcessingMetrics($cmd_p_secwarn, $cmd_p_seccrit) }
     threads << Thread.new{ results << commandProcessedMetrics() }
     threads << Thread.new{ results << commandRetriedMetrics() }
-    if $api_version.match(/^[456]/)
+    if $api_version.match(/^[4567]/)
       threads << Thread.new{ results << databaseMetricsHikari() }
       threads << Thread.new{ results << databaseMetricsHikari('Read') }
     else
@@ -639,7 +639,7 @@ if ! skip_checks
       results << commandProcessingMetrics($cmd_p_secwarn, $cmd_p_seccrit)
       results << commandProcessedMetrics()
       results << commandRetriedMetrics()
-      if $api_version.match(/^[456]/)
+      if $api_version.match(/^[4567]/)
         results << databaseMetricsHikari()
         results << databaseMetricsHikari('Read')
       else
