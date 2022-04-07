@@ -109,7 +109,6 @@ def doRequest(url)
   begin
     p = URI::Parser.new
     encoded_url = p.escape(url)
-    puts encoded_url
     uri = URI.parse(encoded_url)
     response = uri.read(:read_timeout => $timeout)
     puts "Response: #{response}" if $debug
