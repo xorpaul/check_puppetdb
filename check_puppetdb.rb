@@ -107,7 +107,9 @@ def doRequest(url)
   out = {'returncode' => 0}
   puts "sending GET to #{url}" if $debug
   begin
-    encoded_url = URI.encode(url)
+    p = URI::Parser.new
+    encoded_url = p.escape(url)
+    puts encoded_url
     uri = URI.parse(encoded_url)
     response = uri.read(:read_timeout => $timeout)
     puts "Response: #{response}" if $debug
