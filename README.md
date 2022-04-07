@@ -4,6 +4,7 @@ check_puppetdb
 PuppetDB monitoring script for Nagios/Icinga/Shinken
 
 Support for PuppetDB API:
+* PuppetDB version 7.0
 * PuppetDB version 6.9 and higher /v2/metrics *only reachable from localhost, see #14* (https://github.com/puppetlabs/puppetserver/blob/master/documentation/metrics-api/v2/metrics_api.markdown)
 * PuppetDB version 6.0 (https://docs.puppet.com/puppetdb/6.0/api/metrics/v1/mbeans.html)
 * PuppetDB version 5.0 (https://docs.puppet.com/puppetdb/5.0/api/metrics/v1/mbeans.html)
@@ -42,6 +43,25 @@ Usage: check_puppetdb [options]
 ![checkmk](https://github.com/xorpaul/check_puppetdb/raw/master/example-images/checkmk.png)
 
 **Example**
+
+PuppetDB 7.10.0
+```
+$ ruby check_puppetdb.rb -H localhost
+Catalog duplication: 11.6% 0.704 cmds/s 249.648 ms/cmd dlo global messages: 1 dlo global filesize: 97388 JVM 246MB used of 4062MB (6.06%) nodes: 6883 inactive nodes: 14 Read pool - active DB connections: 1 max DB connections: 25 Write pool - active DB connections: 0 max DB connections: 25 processed: 363 Queue size: 0 threads: N/A Resource duplication: 96.8% resources: 10153558 retried: 0 thread count: 65 peak thread count: 65 daemon thread count: 23 |catalog_duplication=11.602% cmd_s_1m=1.021 cmd_s_5m=0.704;-1;-1 cmd_s_15m=0.33 ms_cmd50=249.648ms dlo_global_messages=1 dlo_global_filesize=97388 jvm_used=258119944B jvm_max=4260102144B jvm_used_perc=6.059008335364458% num_nodes=6883 num_inactive_nodes=14 pool_read_used_connections=1 pool_read_max_connections=25 pool_write_used_connections=0 pool_write_max_connections=25 processed=363 queue_size=0;500;2000 threads=N/A resource_duplication=96.754% resources=10153558 retried=0 thread_count=65 peak_thread_count=65 daemon_thread_count=23 
+Catalog duplication: 11.6%
+0.704 cmds/s 249.648 ms/cmd
+dlo global messages: 1 dlo global filesize: 97388
+JVM 246MB used of 4062MB (6.06%)
+nodes: 6883 inactive nodes: 14
+Read pool - active DB connections: 1 max DB connections: 25
+Write pool - active DB connections: 0 max DB connections: 25
+processed: 363
+Queue size: 0 threads: N/A
+Resource duplication: 96.8%
+resources: 10153558
+retried: 0
+thread count: 65 peak thread count: 65 daemon thread count: 23
+```
 
 PuppetDB 6.10.1
 ```
